@@ -1,0 +1,8 @@
+# dbt Core + Snowflake (Task 1)
+dbt-core>=1.11,<2
+dbt-snowflake>=1.11,<2
+python-dotenv>=1.0.0
+
+# Optional quality-of-life (course recommends)
+pre-commit>=4
+shandy-sqlfmt>=0.23

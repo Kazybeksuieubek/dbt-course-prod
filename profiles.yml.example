@@ -1,0 +1,20 @@
+# Copy to your user dbt config directory and adjust, OR run scripts/setup_environment.py
+# Windows: %USERPROFILE%\.dbt\profiles.yml
+# Unix:     ~/.dbt/profiles.yml
+#
+# Credentials MUST come from environment variables (see README).
+# Default dev schema is `dev` — not `raw` (raw is for ingested data only).
+
+hiring_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOW_ACCOUNT') }}"
+      user: "{{ env_var('SNOW_USER') }}"
+      password: "{{ env_var('SNOW_USER_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'ACCOUNTADMIN') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'dbt_project') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'COMPUTE_WH') }}"
+      schema: dev
+      threads: 4

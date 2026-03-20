@@ -1,0 +1,33 @@
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'hiring_analytics'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'hiring_analytics'
+
+# These configurations specify where dbt should look for different types of files.
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+# Course CSV seeds live under `data/` (do not use `raw` as your dev schema in profiles.yml)
+seed-paths: ["data"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  hiring_analytics:
+    # Starter example models
+    example:
+      +materialized: view
+    # Recommended layout for Hiring Analytics (add models as you build)
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table
