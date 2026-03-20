@@ -1,21 +1,35 @@
-# dbt-course (Hiring Analytics)
+# Hiring Analytics — dbt Core project
 
-This repository contains:
+This repository supports the **Hiring Analytics / dbt Fundamentals** initial setup: dbt Core against Snowflake, seed data, optional ingestion into a `raw` schema, and optional automation scripts.
 
-- **CSV seed data** under `data/` (candidates, employees, interviews, job_functions, skills).
-- **`scripts/snowflake_ingest.py`** — loads files into Snowflake `dbt_project.raw`.
-- **dbt Core project `hiring_analytics`** — models under `models/`; seeds point at `data/`.
+## Contents
 
-## Prerequisites
+| Area | Description |
+|------|-------------|
+| `data/` | CSV seed files: candidates, employees, interviews, job_functions, skills |
+| `dbt_project.yml` | dbt project **`hiring_analytics`**, `seed-paths: ["data"]`, models under `models/` |
+| `scripts/snowflake_ingest.py` | Loads `data/` into Snowflake database **`dbt_project`**, schema **`raw`** |
+| `profiles.yml.example` | Snowflake profile template; credentials via **`env_var()`** only (no secrets in repo) |
+| `scripts/dbt_env.py` | Loads repo `.env` then invokes dbt (dbt does not read `.env` natively) |
+| `scripts/setup_environment.py` | Optional bootstrap: venv, `profiles.yml` merge, `pre-commit install` |
+| `.pre-commit-config.yaml` | Optional hooks (whitespace, EOF, **sqlfmt**) |
 
-- Python 3.11+ recommended
-- Snowflake account and credentials (via **environment variables** only — do not commit secrets)
+**Security:** `.env` is gitignored. Reviewers should confirm no credentials appear in history or files.
 
-## Quick start — dbt Core (homework Task 1)
+---
 
-### 1. Virtual environment
+## Implementation notes (for reviewers)
 
-From the repo root:
+- **dbt Core + `dbt-snowflake`** are listed in `requirements.txt` (with `python-dotenv`, optional `pre-commit`, `shandy-sqlfmt`).
+- **Default dbt schema** in the profile template is **`dev`**, not `raw`, per course guidance (`raw` is reserved for ingested landing tables).
+- **`.gitignore`** covers virtualenv (`.venv/`), dbt artifacts (`target/`, `dbt_packages/`, `logs/`), IDE paths, and `.env`.
+- **Task 2 (optional):** `setup_environment.py` creates or augments `%USERPROFILE%\.dbt\profiles.yml` without embedding passwords—only `env_var(...)` placeholders.
+
+---
+
+## Clone and verify (local)
+
+**Requirements:** Python 3.11+ recommended, Snowflake access, environment variables as in `profiles.yml.example` / `.env.example`.
 
 ```powershell
 python -m venv .venv
@@ -23,101 +37,48 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### 2. Snowflake profile (`~/.dbt/profiles.yml`)
+**Profile:** Copy `profiles.yml.example` to `%USERPROFILE%\.dbt\profiles.yml` **or** run `python scripts/setup_environment.py`. The active profile name must be **`hiring_analytics`**.
 
-- **Option A:** run the helper (no passwords stored in the repo):
-
-  ```powershell
-  python scripts/setup_environment.py
-  ```
-
-- **Option B:** copy `profiles.yml.example` to `%USERPROFILE%\.dbt\profiles.yml` and ensure the profile name is **`hiring_analytics`**.
-
-**Using a `.env` file:** dbt does **not** read `.env` by itself. If your Snowflake vars are in repo-root `.env`, use:
-
-```powershell
-python scripts/dbt_env.py debug
-python scripts/dbt_env.py seed
-```
-
-Or set env vars in the shell before plain `dbt`:
-
-```powershell
-$env:SNOW_ACCOUNT = "your_account"
-$env:SNOW_USER = "your_user"
-$env:SNOW_USER_PASSWORD = "your_password"
-# Optional overrides:
-# $env:SNOWFLAKE_ROLE = "YOUR_ROLE"
-# $env:SNOWFLAKE_DATABASE = "dbt_project"
-# $env:SNOWFLAKE_WAREHOUSE = "COMPUTE_WH"
-```
-
-**Course note:** the default dbt schema in the profile is **`dev`**, not `raw`. The `raw` schema is for ingested tables only.
-
-### 3. Verify dbt
+**Connection check** (after setting `SNOW_ACCOUNT`, `SNOW_USER`, `SNOW_USER_PASSWORD`, and optional `SNOWFLAKE_*`):
 
 ```powershell
 dbt debug
 dbt seed
 ```
 
-### 4. Optional — pre-commit + sqlfmt
+If credentials are only in `.env`, use:
 
 ```powershell
-pre-commit install
+python scripts/dbt_env.py debug
+python scripts/dbt_env.py seed
 ```
 
-Hooks are defined in `.pre-commit-config.yaml`. SQL formatter package: **`shandy-sqlfmt`** (`sqlfmt` on PATH).
+**Optional:** `pre-commit install` — formatters defined in `.pre-commit-config.yaml`.
 
 ---
 
-## Load raw data (ingestion script)
+## Raw data load (ingestion)
 
-Same env vars as above. From repo root:
+From repo root, with the same Snowflake env vars (or `.env` loaded by the script):
 
 ```powershell
-pip install -r scripts/requirements.txt   # pandas, snowflake-connector-python, python-dotenv
+pip install -r scripts/requirements.txt
 python scripts/snowflake_ingest.py .\data
 ```
 
-This creates/use database **`dbt_project`**, schema **`raw`**, and loads the CSVs.
-
 ---
 
-## Task 2 — automated setup (optional)
-
-`scripts/setup_environment.py`:
-
-- Creates `.venv` (unless `--skip-venv`) and installs `requirements.txt`
-- Ensures `%USERPROFILE%\.dbt\profiles.yml` exists
-- Appends the `hiring_analytics` profile **only if it is missing**
-- Runs `pre-commit install` unless `--no-pre-commit`
-
-**Security:** credentials are never written to disk by this script — only `env_var(...)` placeholders in YAML.
-
-```powershell
-python scripts/setup_environment.py
-```
-
----
-
-## Project layout
+## Repository layout (reference)
 
 | Path | Purpose |
-|------|--------|
-| `dbt_project.yml` | dbt project config (`profile: hiring_analytics`, `seed-paths: ["data"]`) |
-| `models/` | dbt models (`example/`, `staging/`, `marts/`) |
-| `data/` | Seed CSVs |
-| `profiles.yml.example` | Template for `~/.dbt/profiles.yml` |
-| `requirements.txt` | dbt + optional dev tools |
+|------|---------|
+| `models/example/` | Starter dbt models from project initialization |
+| `models/staging/`, `models/marts/` | Placeholders for layered modeling |
+| `analyses/`, `tests/`, `macros/`, `snapshots/` | Standard dbt directories |
+| `.env.example` | Non-secret template for local env files |
 
 ---
 
-## Homework checklist
+## Maintainer
 
-- [x] Python venv + `dbt-core`, `dbt-snowflake`, optional `pre-commit`, `shandy-sqlfmt`
-- [x] `dbt init`–equivalent project at repo root (`hiring_analytics`), default schema **`dev`** in profile
-- [x] `dbt_project.yml` configured; run `dbt debug` and `dbt seed` after setting env vars
-- [x] `.gitignore`: `.venv`, `target`, `dbt_packages`, logs, IDE dirs, `.env`
-- [ ] **Commit and push your work** (Task 1 #8)
-- [ ] (Optional) Use / extend `scripts/setup_environment.py` for Task 2
+Submissions and course delivery: see the course platform for the fork / student repository URL.
