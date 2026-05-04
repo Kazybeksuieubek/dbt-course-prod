@@ -1,0 +1,160 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw hiring analytics data ingested from the source system."
+
+    tables:
+      # FAIL: error_after 7 days, data is ~458 days old → ERROR
+      - name: candidates
+        description: "Candidate profiles with availability status, skill, and job preferences."
+        loaded_at_field: _updated_micros
+        freshness:
+          error_after: {count: 7, period: day}
+        columns:
+          - name: _offset
+            description: "Incremental load offset."
+          - name: candidate_id
+            description: "Unique identifier for the candidate."
+          - name: primary_skill_id
+            description: "Foreign key to the candidate's primary skill."
+          - name: staffing_status
+            description: "Current availability status (e.g., Available, On Project)."
+          - name: english_level
+            description: "English proficiency level (e.g., C1, B2, Unspecified)."
+          - name: job_function_id
+            description: "Foreign key to the candidate's desired job function."
+          - name: _created_micros
+            description: "Record creation timestamp in Unix microseconds."
+          - name: _updated_micros
+            description: "Record last-update timestamp in Unix microseconds."
+
+      # WARN: warn_after 100 days, error_after 600 days; data is ~458 days old → WARN
+      - name: interviews
+        description: "Interview records including participants, status, type, and media details."
+        loaded_at_field: _updated_micros
+        freshness:
+          warn_after:  {count: 100, period: day}
+          error_after: {count: 600, period: day}
+        columns:
+          - name: _offset
+            description: "Incremental load offset."
+          - name: id
+            description: "Unique identifier for the interview event."
+          - name: candidate_type
+            description: "Category of the interviewee (e.g., Applicant)."
+          - name: candidate_id
+            description: "Foreign key to the candidate being interviewed."
+          - name: status
+            description: "Interview lifecycle status (DRAFT, REQUESTED, COMPLETED, etc.)."
+          - name: interviewer_id
+            description: "Foreign key to the interviewer."
+          - name: location
+            description: "Interview platform or physical location (e.g., MS_TEAMS)."
+          - name: logged
+            description: "Whether the interview session was logged."
+          - name: media_available
+            description: "Whether a media recording exists."
+          - name: run_type
+            description: "Delivery mode of the interview (e.g., ONLINE, ONSITE)."
+          - name: type
+            description: "Interview type (e.g., Technical, HR)."
+          - name: media_status
+            description: "Recording status (e.g., NO_MEDIA, AVAILABLE)."
+          - name: invite_answer_status
+            description: "Whether the candidate accepted or declined the invite."
+          - name: _created_micros
+            description: "Record creation timestamp in Unix microseconds."
+          - name: _updated_micros
+            description: "Record last-update timestamp in Unix microseconds."
+
+      # PASS: warn_after 600 days; data is ~458 days old → PASS
+      - name: skills
+        description: "Skills taxonomy with hierarchy, type, and activity flags."
+        loaded_at_field: _updated_micros
+        freshness:
+          warn_after: {count: 600, period: day}
+        columns:
+          - name: _offset
+            description: "Incremental load offset."
+          - name: id
+            description: "Unique identifier for the skill."
+          - name: is_active
+            description: "Whether the skill is currently active in the taxonomy."
+          - name: is_primary
+            description: "Whether this skill can be used as a primary skill."
+          - name: is_key
+            description: "Whether this is a key/critical skill."
+          - name: is_key_reason
+            description: "Reason the skill is flagged as key."
+          - name: type
+            description: "Skill classification type (e.g., Skill, Technology)."
+          - name: name
+            description: "Display name of the skill."
+          - name: url
+            description: "Reference or documentation URL for the skill."
+          - name: parent_id
+            description: "Foreign key to the parent node in the skill hierarchy."
+          - name: _created_micros
+            description: "Record creation timestamp in Unix microseconds."
+          - name: _updated_micros
+            description: "Record last-update timestamp in Unix microseconds."
+
+      - name: employees
+        description: "Employee records with employment type, organisational placement, and tenure dates."
+        loaded_at_field: _updated_micros
+        columns:
+          - name: _offset
+            description: "Incremental load offset."
+          - name: employee_id
+            description: "Unique identifier for the employee."
+          - name: job_function_id
+            description: "Foreign key to the employee's job function."
+          - name: primary_skill_id
+            description: "Foreign key to the employee's primary skill."
+          - name: production_category
+            description: "Whether the employee is in Production or Non-Production."
+          - name: employment_status
+            description: "Employment type (e.g., Full-time employee, Contractor)."
+          - name: org_category
+            description: "High-level organisational category."
+          - name: org_category_type
+            description: "Sub-type of the organisational category."
+          - name: work_start_micros
+            description: "Employment start date in Unix microseconds."
+          - name: work_end_micros
+            description: "Employment end date in Unix microseconds; empty if still active."
+          - name: is_active
+            description: "Whether the employee is currently active."
+          - name: _created_micros
+            description: "Record creation timestamp in Unix microseconds."
+          - name: _updated_micros
+            description: "Record last-update timestamp in Unix microseconds."
+
+      - name: job_functions
+        description: "Job function definitions including seniority levels, tracks, and categories."
+        loaded_at_field: _updated_micros
+        columns:
+          - name: _offset
+            description: "Incremental load offset."
+          - name: job_function_id
+            description: "Unique identifier for the job function."
+          - name: base_name
+            description: "Base name of the job function (e.g., Testing, Business Analysis)."
+          - name: category
+            description: "Functional category (e.g., Delivery, Other)."
+          - name: is_active
+            description: "Whether the job function is currently active."
+          - name: level
+            description: "Numeric seniority level."
+          - name: track
+            description: "Career track code (e.g., A for Advisory, O for Other)."
+          - name: seniority_level
+            description: "Full seniority level code (e.g., A4, O3)."
+          - name: seniority_index
+            description: "Numeric index used for seniority sorting."
+          - name: _created_micros
+            description: "Record creation timestamp in Unix microseconds."
+          - name: _updated_micros
+            description: "Record last-update timestamp in Unix microseconds."
