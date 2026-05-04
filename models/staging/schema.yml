@@ -1,0 +1,199 @@
+version: 2
+
+models:
+  - name: stg_candidate
+    description: "Latest state of each candidate with renamed columns and timestamp casts."
+    config:
+      materialized: view
+    columns:
+      - name: offset
+        description: "Incremental load offset from the source system."
+      - name: id
+        description: "Unique candidate identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: primary_skill_id
+        description: "Foreign key to the candidate's primary skill."
+      - name: staffing_status
+        description: "Current staffing availability status."
+      - name: english_level
+        description: "English proficiency level."
+      - name: job_function_id
+        description: "Foreign key to the desired job function."
+      - name: created_at
+        description: "Record creation timestamp (converted from Unix microseconds)."
+      - name: updated_at
+        description: "Record last-update timestamp (converted from Unix microseconds)."
+
+  - name: stg_employee
+    description: "Latest state of each employee with type casts and date conversions."
+    config:
+      materialized: table
+    columns:
+      - name: offset
+        description: "Incremental load offset from the source system."
+      - name: id
+        description: "Unique employee identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: job_function_id
+        description: "Foreign key to the employee's job function."
+      - name: primary_skill_id
+        description: "Foreign key to the employee's primary skill."
+      - name: production_category
+        description: "Production or Non-Production classification."
+      - name: employment_status
+        description: "Employment type (Full-time, Contractor, etc.)."
+      - name: org_category
+        description: "High-level organisational category."
+      - name: org_category_type
+        description: "Sub-type of the organisational category."
+      - name: work_start_date
+        description: "Employment start date."
+      - name: work_end_date
+        description: "Employment end date; NULL if still active."
+      - name: is_active
+        description: "Whether the employee is currently active."
+      - name: created_at
+        description: "Record creation timestamp."
+      - name: updated_at
+        description: "Record last-update timestamp."
+
+  - name: stg_interview
+    description: >
+      Interview records with boolean casts and timestamp conversions.
+      Materialized as incremental (merge on id) so only new or updated
+      interviews are processed on subsequent runs.
+    config:
+      materialized: incremental
+    columns:
+      - name: offset
+        description: "Incremental load offset from the source system."
+      - name: id
+        description: "Unique interview identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: candidate_type
+        description: "Category of the interviewee."
+      - name: candidate_id
+        description: "Foreign key to the candidate."
+      - name: status
+        description: "Interview lifecycle status."
+      - name: interviewer_id
+        description: "Foreign key to the interviewer."
+      - name: location
+        description: "Platform or location (e.g. MS_TEAMS)."
+      - name: is_logged
+        description: "Whether the session was logged."
+      - name: is_media_available
+        description: "Whether a recording exists."
+      - name: run_type
+        description: "Delivery mode (ONLINE, ONSITE)."
+      - name: type
+        description: "Interview type (Technical, HR, etc.)."
+      - name: media_status
+        description: "Recording status."
+      - name: invite_answer_status
+        description: "Whether the candidate accepted or declined the invite."
+      - name: created_at
+        description: "Record creation timestamp."
+      - name: updated_at
+        description: "Record last-update timestamp."
+
+  - name: stg_skill
+    description: "Latest state of each skill with boolean flags and timestamp casts."
+    config:
+      materialized: view
+    columns:
+      - name: offset
+        description: "Incremental load offset from the source system."
+      - name: id
+        description: "Unique skill identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: is_active
+        description: "Whether the skill is active in the taxonomy."
+      - name: is_primary
+        description: "Whether the skill can serve as a primary skill."
+      - name: is_key
+        description: "Whether this is a key/critical skill."
+      - name: is_key_reason
+        description: "True when a key-reason text is present in the source."
+      - name: type
+        description: "Skill classification type."
+      - name: name
+        description: "Display name of the skill."
+      - name: url
+        description: "Reference URL for the skill."
+      - name: parent_id
+        description: "Foreign key to the parent skill in the hierarchy."
+      - name: created_at
+        description: "Record creation timestamp."
+      - name: updated_at
+        description: "Record last-update timestamp."
+
+  - name: stg_job_function
+    description: "Latest state of each job function with seniority attributes and timestamp casts."
+    config:
+      materialized: view
+    columns:
+      - name: offset
+        description: "Incremental load offset from the source system."
+      - name: id
+        description: "Unique job function identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: base_name
+        description: "Base name of the job function."
+      - name: category
+        description: "Functional category (Delivery, Other, etc.)."
+      - name: is_active
+        description: "Whether the job function is active."
+      - name: level
+        description: "Numeric seniority level."
+      - name: track
+        description: "Career track code."
+      - name: seniority_level
+        description: "Full seniority level code (e.g. A4, O3)."
+      - name: seniority_index
+        description: "Numeric index for seniority sorting."
+      - name: created_at
+        description: "Record creation timestamp."
+      - name: updated_at
+        description: "Record last-update timestamp."
+
+  - name: stg_date
+    description: "Date dimension spanning 2020–2029 with calendar attributes."
+    config:
+      materialized: table
+    columns:
+      - name: date
+        description: "Calendar date (primary key)."
+        data_tests:
+          - unique
+          - not_null
+      - name: year
+        description: "Calendar year."
+      - name: quarter
+        description: "Calendar quarter (1–4)."
+      - name: month
+        description: "Month number (1–12)."
+      - name: day
+        description: "Day of month (1–31)."
+      - name: week
+        description: "ISO week of year."
+      - name: day_of_week
+        description: "Day of week (0=Sunday … 6=Saturday)."
+      - name: day_name
+        description: "Abbreviated day name (Mon, Tue, …)."
+      - name: month_name
+        description: "Abbreviated month name (Jan, Feb, …)."
+      - name: is_weekend
+        description: "True for Saturday and Sunday."
+      - name: is_holiday
+        description: "Public holiday flag (currently always false — no calendar source)."
