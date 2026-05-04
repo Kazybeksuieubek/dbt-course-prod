@@ -1,0 +1,60 @@
+raw_table_name,raw_column_name,target_column_name,target_data_type,target_order_num,source_description
+candidates,_offset,kafka_offset,NUMBER,1,Incremental load offset.
+candidates,candidate_id,candidate_id,VARCHAR,2,Unique identifier for the candidate.
+candidates,primary_skill_id,primary_skill_id,VARCHAR,3,Foreign key to the candidate's primary skill.
+candidates,staffing_status,staffing_status,VARCHAR,4,Current availability status (e.g. Available or On Project).
+candidates,english_level,english_level,VARCHAR,5,English proficiency level (e.g. C1 or B2).
+candidates,job_function_id,job_function_id,VARCHAR,6,Foreign key to the candidate's desired job function.
+candidates,_created_micros,created_at,TIMESTAMP_NTZ,7,Record creation timestamp in Unix microseconds.
+candidates,_updated_micros,updated_at,TIMESTAMP_NTZ,8,Record last-update timestamp in Unix microseconds.
+employees,_offset,kafka_offset,NUMBER,1,Incremental load offset.
+employees,employee_id,employee_id,VARCHAR,2,Unique identifier for the employee.
+employees,job_function_id,job_function_id,VARCHAR,3,Foreign key to the employee's job function.
+employees,primary_skill_id,primary_skill_id,VARCHAR,4,Foreign key to the employee's primary skill.
+employees,production_category,production_category,VARCHAR,5,Whether the employee is in Production or Non-Production.
+employees,employment_status,employment_status,VARCHAR,6,Employment type (e.g. Full-time employee or Contractor).
+employees,org_category,org_category,VARCHAR,7,High-level organisational category.
+employees,org_category_type,org_category_type,VARCHAR,8,Sub-type of the organisational category.
+employees,work_start_micros,work_started_at,TIMESTAMP_NTZ,9,Employment start date in Unix microseconds.
+employees,work_end_micros,work_ended_at,TIMESTAMP_NTZ,10,Employment end date in Unix microseconds; empty if still active.
+employees,is_active,is_active,BOOLEAN,11,Whether the employee is currently active.
+employees,_created_micros,created_at,TIMESTAMP_NTZ,12,Record creation timestamp in Unix microseconds.
+employees,_updated_micros,updated_at,TIMESTAMP_NTZ,13,Record last-update timestamp in Unix microseconds.
+interviews,_offset,kafka_offset,NUMBER,1,Incremental load offset.
+interviews,id,interview_id,VARCHAR,2,Unique identifier for the interview event.
+interviews,candidate_type,candidate_type,VARCHAR,3,Category of the interviewee (e.g. Applicant).
+interviews,candidate_id,candidate_id,VARCHAR,4,Foreign key to the candidate being interviewed.
+interviews,status,status,VARCHAR,5,Interview lifecycle status (e.g. DRAFT or REQUESTED or COMPLETED).
+interviews,interviewer_id,interviewer_id,VARCHAR,6,Foreign key to the interviewer.
+interviews,location,location,VARCHAR,7,Interview platform or physical location (e.g. MS_TEAMS).
+interviews,logged,is_logged,BOOLEAN,8,Whether the interview session was logged.
+interviews,media_available,is_media_available,BOOLEAN,9,Whether a media recording exists.
+interviews,run_type,run_type,VARCHAR,10,Delivery mode of the interview (e.g. ONLINE or ONSITE).
+interviews,type,interview_type,VARCHAR,11,Interview type (e.g. Technical or HR).
+interviews,media_status,media_status,VARCHAR,12,Recording status (e.g. NO_MEDIA or AVAILABLE).
+interviews,invite_answer_status,invite_answer_status,VARCHAR,13,Whether the candidate accepted or declined the invite.
+interviews,_created_micros,created_at,TIMESTAMP_NTZ,14,Record creation timestamp in Unix microseconds.
+interviews,_updated_micros,updated_at,TIMESTAMP_NTZ,15,Record last-update timestamp in Unix microseconds.
+skills,_offset,kafka_offset,NUMBER,1,Incremental load offset.
+skills,id,skill_id,VARCHAR,2,Unique identifier for the skill.
+skills,is_active,is_active,BOOLEAN,3,Whether the skill is currently active in the taxonomy.
+skills,is_primary,is_primary,BOOLEAN,4,Whether this skill can be used as a primary skill.
+skills,is_key,is_key,BOOLEAN,5,Whether this is a key/critical skill.
+skills,is_key_reason,is_key_reason,VARCHAR,6,Reason the skill is flagged as key.
+skills,type,skill_type,VARCHAR,7,Skill classification type (e.g. Skill or Technology).
+skills,name,skill_name,VARCHAR,8,Display name of the skill.
+skills,url,url,VARCHAR,9,Reference or documentation URL for the skill.
+skills,parent_id,parent_skill_id,VARCHAR,10,Foreign key to the parent node in the skill hierarchy.
+skills,_created_micros,created_at,TIMESTAMP_NTZ,11,Record creation timestamp in Unix microseconds.
+skills,_updated_micros,updated_at,TIMESTAMP_NTZ,12,Record last-update timestamp in Unix microseconds.
+job_functions,_offset,kafka_offset,NUMBER,1,Incremental load offset.
+job_functions,job_function_id,job_function_id,VARCHAR,2,Unique identifier for the job function.
+job_functions,base_name,job_function_name,VARCHAR,3,Base name of the job function (e.g. Testing or Business Analysis).
+job_functions,category,category,VARCHAR,4,Functional category (e.g. Delivery or Other).
+job_functions,is_active,is_active,BOOLEAN,5,Whether the job function is currently active.
+job_functions,level,level,NUMBER,6,Numeric seniority level.
+job_functions,track,track,VARCHAR,7,Career track code (e.g. A for Advisory or O for Other).
+job_functions,seniority_level,seniority_level,VARCHAR,8,Full seniority level code (e.g. A4 or O3).
+job_functions,seniority_index,seniority_index,NUMBER,9,Numeric index used for seniority sorting.
+job_functions,_created_micros,created_at,TIMESTAMP_NTZ,10,Record creation timestamp in Unix microseconds.
+job_functions,_updated_micros,updated_at,TIMESTAMP_NTZ,11,Record last-update timestamp in Unix microseconds.
