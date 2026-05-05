@@ -3,28 +3,28 @@ version: 2
 seeds:
   - name: staging_column_config
     description: >
-      Configuration seed that maps raw source columns to their desired staging layer equivalents.
-      Used as the foundation for config-driven staging model generation: column renames,
-      type casts (including microsecond → TIMESTAMP_NTZ conversions), and column ordering.
+      Configuration seed mapping raw source columns to their desired staging layer equivalents.
+      Drives the staging_model macro: column renames, type casts, custom expressions, and ordering.
 
     config:
       column_types:
-        raw_table_name:    varchar
-        raw_column_name:   varchar
+        raw_table_name:     varchar
+        raw_column_name:    varchar
         target_column_name: varchar
-        target_data_type:  varchar
-        target_order_num:  integer
+        target_data_type:   varchar
+        target_order_num:   integer
         source_description: varchar
+        custom_expression:  varchar
 
     columns:
       - name: raw_table_name
-        description: "Name of the raw source table in the raw schema (e.g. candidates, employees)."
+        description: "Name of the raw source table (e.g. candidates, employees)."
         data_type: varchar
         constraints:
           - type: not_null
 
       - name: raw_column_name
-        description: "Original column name as it exists in the raw source table."
+        description: "Original column name in the raw source table."
         data_type: varchar
         constraints:
           - type: not_null
@@ -37,20 +37,26 @@ seeds:
 
       - name: target_data_type
         description: >
-          Desired Snowflake data type for the column in the staging model.
-          Supported values: VARCHAR, NUMBER, BOOLEAN, TIMESTAMP_NTZ.
-          Columns with TIMESTAMP_NTZ require a microsecond-to-timestamp cast
-          (raw integer / 1000000 fed into TO_TIMESTAMP_NTZ).
+          Desired Snowflake data type for the column.
+          Supported values: VARCHAR, NUMBER, BOOLEAN, TIMESTAMP_NTZ, DATE.
+          Ignored when custom_expression is set.
         data_type: varchar
         constraints:
           - type: not_null
 
       - name: target_order_num
-        description: "Desired 1-based column position in the staging model SELECT list."
+        description: "1-based column position in the staging model SELECT list."
         data_type: integer
         constraints:
           - type: not_null
 
       - name: source_description
-        description: "Human-readable description of the column sourced from the raw layer documentation."
+        description: "Human-readable description of the column from source documentation."
+        data_type: varchar
+
+      - name: custom_expression
+        description: >
+          Optional raw SQL expression overriding the default type cast.
+          When set, the macro uses this expression verbatim (e.g. for boolean derivations
+          or multi-function casts like to_date(to_timestamp_ntz(...))).
         data_type: varchar

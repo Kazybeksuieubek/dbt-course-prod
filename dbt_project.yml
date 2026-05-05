@@ -21,6 +21,33 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+vars:
+  # Add new time traps here without touching interview_time_trap.sql.
+  # trap_type: within_interview  → duration between two statuses of the same interview
+  # trap_type: between_interviews → duration from one interview type's status
+  #                                  to the next interview type's creation (same candidate)
+  interview_time_traps:
+    - name: scheduled_to_started
+      trap_type: within_interview
+      start_status: SCHEDULED
+      end_status: IN_PROGRESS
+
+    - name: started_to_pending_feedback
+      trap_type: within_interview
+      start_status: IN_PROGRESS
+      end_status: PENDING_FEEDBACK
+
+    - name: pending_feedback_to_completed
+      trap_type: within_interview
+      start_status: PENDING_FEEDBACK
+      end_status: COMPLETED
+
+    - name: GI_completed_to_TI_created
+      trap_type: between_interviews
+      start_interview_type: General
+      start_status: COMPLETED
+      end_interview_type: Technical
+
 models:
   hiring_analytics:
     # Starter example models
