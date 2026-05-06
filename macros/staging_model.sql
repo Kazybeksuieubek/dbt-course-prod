@@ -6,10 +6,12 @@
     validity fields using a LEAD window over the entity's update timestamp.
 
     Parameters:
-        source_table  – raw table name matching staging_column_config.raw_table_name
-        primary_key   – raw column name identifying the entity (used for PARTITION BY)
+        source_table     – raw table name matching staging_column_config.raw_table_name
+        primary_key      – raw column name identifying the entity (used for PARTITION BY)
+        filter_condition – optional SQL WHERE predicate (using raw column names) applied
+                           after deduplication; e.g. 'employee_id is not null'
 #}
-{% macro staging_model(source_table, primary_key) %}
+{% macro staging_model(source_table, primary_key, filter_condition=none) %}
 
     {%- set config_query -%}
     select
@@ -28,7 +30,14 @@
     {%- endif -%}
 
     with
-        source as (select * from {{ source('raw', source_table) }}),
+        source as (
+            select *
+            from {{ source('raw', source_table) }}
+            -- DQ Fix: deduplicate CDC replay — keep the latest row per offset
+            qualify
+                row_number() over (partition by _offset order by _updated_micros desc)
+                = 1
+        ),
 
         with_validity as (
             select
@@ -65,5 +74,8 @@
         (row_valid_to = 9558613439000000)::int as row_is_active
 
     from with_validity
+    {%- if filter_condition is not none and filter_condition | trim != '' %}
+        where {{ filter_condition }}
+    {%- endif %}
 
 {% endmacro %}

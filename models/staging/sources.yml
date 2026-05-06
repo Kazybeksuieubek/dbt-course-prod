@@ -15,8 +15,16 @@ sources:
         columns:
           - name: _offset
             description: "Incremental load offset."
+            data_tests:
+              - not_null
+              # DQ Issue: CDC replay can produce duplicate offsets in the source;
+              # deduplication is applied in staging via QUALIFY ROW_NUMBER()
+              - unique:
+                  severity: warn
           - name: candidate_id
             description: "Unique identifier for the candidate."
+            data_tests:
+              - not_null
           - name: primary_skill_id
             description: "Foreign key to the candidate's primary skill."
           - name: staffing_status
@@ -27,8 +35,12 @@ sources:
             description: "Foreign key to the candidate's desired job function."
           - name: _created_micros
             description: "Record creation timestamp in Unix microseconds."
+            data_tests:
+              - not_null
           - name: _updated_micros
             description: "Record last-update timestamp in Unix microseconds."
+            data_tests:
+              - not_null
 
       # WARN: warn_after 100 days, error_after 600 days; data is ~458 days old → WARN
       - name: interviews
@@ -40,16 +52,38 @@ sources:
         columns:
           - name: _offset
             description: "Incremental load offset."
+            data_tests:
+              - not_null
+              # DQ Issue: CDC replay can produce duplicate offsets; deduped in staging
+              - unique:
+                  severity: warn
           - name: id
             description: "Unique identifier for the interview event."
+            data_tests:
+              - not_null
           - name: candidate_type
             description: "Category of the interviewee (e.g., Applicant)."
           - name: candidate_id
             description: "Foreign key to the candidate being interviewed."
+            data_tests:
+              - not_null
+              # DQ Issue: some interviews reference candidates not present in the candidates table
+              - relationships:
+                  to: source('raw', 'candidates')
+                  field: candidate_id
+                  severity: warn
           - name: status
             description: "Interview lifecycle status (DRAFT, REQUESTED, COMPLETED, etc.)."
+            data_tests:
+              - not_null
           - name: interviewer_id
             description: "Foreign key to the interviewer."
+            data_tests:
+              # DQ Issue: some interviews reference employees not present in the employees table
+              - relationships:
+                  to: source('raw', 'employees')
+                  field: employee_id
+                  severity: warn
           - name: location
             description: "Interview platform or physical location (e.g., MS_TEAMS)."
           - name: logged
@@ -66,8 +100,12 @@ sources:
             description: "Whether the candidate accepted or declined the invite."
           - name: _created_micros
             description: "Record creation timestamp in Unix microseconds."
+            data_tests:
+              - not_null
           - name: _updated_micros
             description: "Record last-update timestamp in Unix microseconds."
+            data_tests:
+              - not_null
 
       # PASS: warn_after 600 days; data is ~458 days old → PASS
       - name: skills
@@ -78,8 +116,15 @@ sources:
         columns:
           - name: _offset
             description: "Incremental load offset."
+            data_tests:
+              - not_null
+              # DQ Issue: CDC replay can produce duplicate offsets; deduped in staging
+              - unique:
+                  severity: warn
           - name: id
             description: "Unique identifier for the skill."
+            data_tests:
+              - not_null
           - name: is_active
             description: "Whether the skill is currently active in the taxonomy."
           - name: is_primary
@@ -92,14 +137,22 @@ sources:
             description: "Skill classification type (e.g., Skill, Technology)."
           - name: name
             description: "Display name of the skill."
+            data_tests:
+              # DQ Issue: 8 source rows have null name; filtered out in stg_skill
+              - not_null:
+                  severity: warn
           - name: url
             description: "Reference or documentation URL for the skill."
           - name: parent_id
             description: "Foreign key to the parent node in the skill hierarchy."
           - name: _created_micros
             description: "Record creation timestamp in Unix microseconds."
+            data_tests:
+              - not_null
           - name: _updated_micros
             description: "Record last-update timestamp in Unix microseconds."
+            data_tests:
+              - not_null
 
       - name: employees
         description: "Employee records with employment type, organisational placement, and tenure dates."
@@ -107,8 +160,17 @@ sources:
         columns:
           - name: _offset
             description: "Incremental load offset."
+            data_tests:
+              - not_null
+              # DQ Issue: CDC replay can produce duplicate offsets; deduped in staging
+              - unique:
+                  severity: warn
           - name: employee_id
             description: "Unique identifier for the employee."
+            data_tests:
+              # DQ Issue: 4 source rows have null employee_id; filtered out in stg_employee
+              - not_null:
+                  severity: warn
           - name: job_function_id
             description: "Foreign key to the employee's job function."
           - name: primary_skill_id
@@ -127,10 +189,16 @@ sources:
             description: "Employment end date in Unix microseconds; empty if still active."
           - name: is_active
             description: "Whether the employee is currently active."
+            data_tests:
+              - not_null
           - name: _created_micros
             description: "Record creation timestamp in Unix microseconds."
+            data_tests:
+              - not_null
           - name: _updated_micros
             description: "Record last-update timestamp in Unix microseconds."
+            data_tests:
+              - not_null
 
       - name: job_functions
         description: "Job function definitions including seniority levels, tracks, and categories."
@@ -138,14 +206,25 @@ sources:
         columns:
           - name: _offset
             description: "Incremental load offset."
+            data_tests:
+              - not_null
+              # DQ Issue: CDC replay can produce duplicate offsets; deduped in staging
+              - unique:
+                  severity: warn
           - name: job_function_id
             description: "Unique identifier for the job function."
+            data_tests:
+              - not_null
           - name: base_name
             description: "Base name of the job function (e.g., Testing, Business Analysis)."
+            data_tests:
+              - not_null
           - name: category
             description: "Functional category (e.g., Delivery, Other)."
           - name: is_active
             description: "Whether the job function is currently active."
+            data_tests:
+              - not_null
           - name: level
             description: "Numeric seniority level."
           - name: track
@@ -156,5 +235,9 @@ sources:
             description: "Numeric index used for seniority sorting."
           - name: _created_micros
             description: "Record creation timestamp in Unix microseconds."
+            data_tests:
+              - not_null
           - name: _updated_micros
             description: "Record last-update timestamp in Unix microseconds."
+            data_tests:
+              - not_null

@@ -2,16 +2,18 @@ version: 2
 
 models:
   - name: stg_candidate
-    description: "Latest state of each candidate with renamed columns and timestamp casts."
+    description: "Full SCD2 history of each candidate with renamed columns and timestamp casts."
     config:
       materialized: view
     columns:
       - name: offset
-        description: "Incremental load offset from the source system."
+        description: "Incremental load offset from the source system. Unique per version row."
+        data_tests:
+          - unique
+          - not_null
       - name: id
         description: "Unique candidate identifier."
         data_tests:
-          - unique
           - not_null
       - name: primary_skill_id
         description: "Foreign key to the candidate's primary skill."
@@ -23,20 +25,40 @@ models:
         description: "Foreign key to the desired job function."
       - name: created_at
         description: "Record creation timestamp (converted from Unix microseconds)."
+        data_tests:
+          - not_null
       - name: updated_at
         description: "Record last-update timestamp (converted from Unix microseconds)."
+        data_tests:
+          - not_null
+      - name: row_valid_from
+        description: "SCD2 validity start (Unix microseconds from source)."
+        data_tests:
+          - not_null
+      - name: row_valid_to
+        description: "SCD2 validity end (Unix microseconds; sentinel 9558613439000000 = active)."
+        data_tests:
+          - not_null
+      - name: row_is_active
+        description: "1 if this is the current version of the record, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
 
   - name: stg_employee
-    description: "Latest state of each employee with type casts and date conversions."
+    description: "Full SCD2 history of each employee with type casts and date conversions."
     config:
       materialized: table
     columns:
       - name: offset
-        description: "Incremental load offset from the source system."
+        description: "Incremental load offset from the source system. Unique per version row."
+        data_tests:
+          - unique
+          - not_null
       - name: id
         description: "Unique employee identifier."
         data_tests:
-          - unique
           - not_null
       - name: job_function_id
         description: "Foreign key to the employee's job function."
@@ -56,32 +78,63 @@ models:
         description: "Employment end date; NULL if still active."
       - name: is_active
         description: "Whether the employee is currently active."
+        data_tests:
+          - not_null
       - name: created_at
         description: "Record creation timestamp."
+        data_tests:
+          - not_null
       - name: updated_at
         description: "Record last-update timestamp."
+        data_tests:
+          - not_null
+      - name: row_valid_from
+        description: "SCD2 validity start (Unix microseconds from source)."
+        data_tests:
+          - not_null
+      - name: row_valid_to
+        description: "SCD2 validity end (Unix microseconds; sentinel 9558613439000000 = active)."
+        data_tests:
+          - not_null
+      - name: row_is_active
+        description: "1 if this is the current version of the record, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
 
   - name: stg_interview
     description: >
-      Interview records with boolean casts and timestamp conversions.
-      Materialized as incremental (merge on id) so only new or updated
-      interviews are processed on subsequent runs.
+      Full SCD2 history of interview records. Each row represents one status-change event.
+      Materialized incrementally so only new or updated records are processed on each run.
     config:
       materialized: incremental
+      unique_key: offset
     columns:
       - name: offset
-        description: "Incremental load offset from the source system."
+        description: "Incremental load offset from the source system. Unique per version row."
+        data_tests:
+          - unique
+          - not_null
       - name: id
         description: "Unique interview identifier."
         data_tests:
-          - unique
           - not_null
       - name: candidate_type
         description: "Category of the interviewee."
       - name: candidate_id
         description: "Foreign key to the candidate."
+        data_tests:
+          - not_null
       - name: status
-        description: "Interview lifecycle status."
+        description: "Normalised interview lifecycle status (no leading/trailing underscores)."
+        data_tests:
+          - not_null
+          # DQ Issue 1: source contains dirty values like __CANCELLED and COMPLETED__
+          # Fixed via REGEXP_REPLACE in the staging_column_config seed custom_expression;
+          # this test confirms the normalisation holds after staging.
+          - dbt_expectations.expect_column_values_to_not_match_regex:
+              regex: "^_|_$"
       - name: interviewer_id
         description: "Foreign key to the interviewer."
       - name: location
@@ -92,28 +145,54 @@ models:
         description: "Whether a recording exists."
       - name: run_type
         description: "Delivery mode (ONLINE, ONSITE)."
+        data_tests:
+          - accepted_values:
+              values: ['ONLINE', 'ONSITE', 'MIXED']
+              severity: warn
       - name: type
         description: "Interview type (Technical, HR, etc.)."
+        data_tests:
+          - not_null
       - name: media_status
         description: "Recording status."
       - name: invite_answer_status
         description: "Whether the candidate accepted or declined the invite."
       - name: created_at
         description: "Record creation timestamp."
+        data_tests:
+          - not_null
       - name: updated_at
         description: "Record last-update timestamp."
+        data_tests:
+          - not_null
+      - name: row_valid_from
+        description: "SCD2 validity start (Unix microseconds from source)."
+        data_tests:
+          - not_null
+      - name: row_valid_to
+        description: "SCD2 validity end (Unix microseconds; sentinel 9558613439000000 = active)."
+        data_tests:
+          - not_null
+      - name: row_is_active
+        description: "1 if this is the current version of the record, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
 
   - name: stg_skill
-    description: "Latest state of each skill with boolean flags and timestamp casts."
+    description: "Full SCD2 history of each skill with boolean flags and timestamp casts."
     config:
       materialized: view
     columns:
       - name: offset
-        description: "Incremental load offset from the source system."
+        description: "Incremental load offset from the source system. Unique per version row."
+        data_tests:
+          - unique
+          - not_null
       - name: id
         description: "Unique skill identifier."
         data_tests:
-          - unique
           - not_null
       - name: is_active
         description: "Whether the skill is active in the taxonomy."
@@ -127,45 +206,99 @@ models:
         description: "Skill classification type."
       - name: name
         description: "Display name of the skill."
+        data_tests:
+          - not_null
       - name: url
         description: "Reference URL for the skill."
       - name: parent_id
         description: "Foreign key to the parent skill in the hierarchy."
       - name: created_at
         description: "Record creation timestamp."
+        data_tests:
+          - not_null
       - name: updated_at
         description: "Record last-update timestamp."
+        data_tests:
+          - not_null
+      - name: row_valid_from
+        description: "SCD2 validity start (Unix microseconds from source)."
+        data_tests:
+          - not_null
+      - name: row_valid_to
+        description: "SCD2 validity end (Unix microseconds; sentinel 9558613439000000 = active)."
+        data_tests:
+          - not_null
+      - name: row_is_active
+        description: "1 if this is the current version of the record, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
 
   - name: stg_job_function
-    description: "Latest state of each job function with seniority attributes and timestamp casts."
+    description: "Full SCD2 history of each job function with seniority attributes and timestamp casts."
     config:
       materialized: view
     columns:
       - name: offset
-        description: "Incremental load offset from the source system."
-      - name: id
-        description: "Unique job function identifier."
+        description: "Incremental load offset from the source system. Unique per version row."
         data_tests:
           - unique
           - not_null
+      - name: id
+        description: "Unique job function identifier."
+        data_tests:
+          - not_null
       - name: base_name
         description: "Base name of the job function."
+        data_tests:
+          - not_null
       - name: category
         description: "Functional category (Delivery, Other, etc.)."
       - name: is_active
         description: "Whether the job function is active."
+        data_tests:
+          - not_null
       - name: level
         description: "Numeric seniority level."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+              severity: warn
       - name: track
         description: "Career track code."
       - name: seniority_level
         description: "Full seniority level code (e.g. A4, O3)."
       - name: seniority_index
         description: "Numeric index for seniority sorting."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+              severity: warn
       - name: created_at
         description: "Record creation timestamp."
+        data_tests:
+          - not_null
       - name: updated_at
         description: "Record last-update timestamp."
+        data_tests:
+          - not_null
+      - name: row_valid_from
+        description: "SCD2 validity start (Unix microseconds from source)."
+        data_tests:
+          - not_null
+      - name: row_valid_to
+        description: "SCD2 validity end (Unix microseconds; sentinel 9558613439000000 = active)."
+        data_tests:
+          - not_null
+      - name: row_is_active
+        description: "1 if this is the current version of the record, 0 otherwise."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
 
   - name: stg_date
     description: "Date dimension spanning 2020–2029 with calendar attributes."
@@ -197,3 +330,43 @@ models:
         description: "True for Saturday and Sunday."
       - name: is_holiday
         description: "Public holiday flag (currently always false — no calendar source)."
+
+  - name: latest_stg_candidate
+    description: "Current state of each candidate (row_is_active = 1)."
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: latest_stg_employee
+    description: "Current state of each employee (row_is_active = 1)."
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: latest_stg_interview
+    description: "Current state of each interview (row_is_active = 1)."
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: latest_stg_skill
+    description: "Current state of each skill (row_is_active = 1)."
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: latest_stg_job_function
+    description: "Current state of each job function (row_is_active = 1)."
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null

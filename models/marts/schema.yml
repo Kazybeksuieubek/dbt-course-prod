@@ -1,0 +1,181 @@
+version: 2
+
+models:
+  - name: dim_candidate
+    description: "SCD2 candidate dimension. Each row is one version of a candidate record."
+    columns:
+      - name: _offset
+        description: "Surrogate key — unique per SCD2 version row."
+        data_tests:
+          - unique
+          - not_null
+      - name: id
+        description: "Natural key for the candidate."
+        data_tests:
+          - not_null
+      - name: valid_from_datetime
+        description: "When this version of the record became active."
+        data_tests:
+          - not_null
+      - name: valid_to_datetime
+        description: "When this version of the record expired (far-future sentinel = still active)."
+        data_tests:
+          - not_null
+
+  - name: dim_employee
+    description: "SCD2 employee dimension. Each row is one version of an employee record."
+    columns:
+      - name: _offset
+        description: "Surrogate key — unique per SCD2 version row."
+        data_tests:
+          - unique
+          - not_null
+      - name: id
+        description: "Natural key for the employee."
+        data_tests:
+          - not_null
+      - name: valid_from_datetime
+        description: "When this version of the record became active."
+        data_tests:
+          - not_null
+      - name: valid_to_datetime
+        description: "When this version of the record expired (far-future sentinel = still active)."
+        data_tests:
+          - not_null
+
+  - name: dim_primary_skill
+    description: "Current state of the skills taxonomy (primary-eligible skills)."
+    columns:
+      - name: id
+        description: "Unique skill identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: name
+        data_tests:
+          - not_null
+
+  - name: dim_job_function
+    description: "Current state of all job function definitions."
+    columns:
+      - name: id
+        description: "Unique job function identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: base_name
+        data_tests:
+          - not_null
+
+  - name: dim_date
+    description: "Date spine from 2020 to 2029."
+    columns:
+      - name: date
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fct_interview
+    description: "One row per interview (latest state) with pivoted status timestamps and point-in-time dimension keys."
+    columns:
+      - name: id
+        description: "Unique interview identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: candidate_offset
+        description: "FK to dim_candidate._offset — candidate state at interview creation time."
+        data_tests:
+          # DQ Issue 2: some interviews reference candidates not in the candidates table
+          - relationships:
+              to: ref('dim_candidate')
+              field: _offset
+              severity: warn
+      - name: interviewer_offset
+        description: "FK to dim_employee._offset — interviewer state at interview creation time."
+        data_tests:
+          - relationships:
+              to: ref('dim_employee')
+              field: _offset
+              severity: warn
+      - name: interview_duration
+        description: "Minutes from IN_PROGRESS to PENDING_FEEDBACK (online interviews only)."
+        data_tests:
+          # DQ Issue 3: a small number of interviews have negative durations due to out-of-order
+          # status transitions in the source; surfaced as warn to monitor without blocking
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              severity: warn
+              row_condition: "interview_duration is not null"
+      - name: feedback_delay
+        description: "Minutes from PENDING_FEEDBACK to COMPLETED."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              severity: warn
+              row_condition: "feedback_delay is not null"
+
+  - name: interview_time_trap
+    description: "Duration metrics between key interview lifecycle events, driven by dbt vars."
+    columns:
+      - name: candidate_id
+        data_tests:
+          - not_null
+      - name: interview_time_trap_name
+        data_tests:
+          - not_null
+      - name: trap_duration
+        description: "Duration in hours between trap_start_datetime and trap_end_datetime."
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              severity: warn
+              row_condition: "trap_duration is not null"
+
+unit_tests:
+  - name: test_status_pivot_captures_last_timestamp
+    description: >
+      Verifies that fct_interview picks the latest updated_at per status when an interview
+      has multiple history rows, and computes interview_duration correctly.
+    model: fct_interview
+    given:
+      - input: ref('stg_interview')
+        format: csv
+        rows: |
+          id,candidate_id,interviewer_id,candidate_type,status,location,is_logged,is_media_available,run_type,type,media_status,invite_answer_status,created_at,updated_at,row_is_active,row_valid_from,row_valid_to
+          i1,c1,e1,EXPERIENCED,SCHEDULED,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 10:00:00,0,1672563600000000,1672570800000000
+          i1,c1,e1,EXPERIENCED,IN_PROGRESS,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 12:00:00,0,1672570800000000,1672578000000000
+          i1,c1,e1,EXPERIENCED,PENDING_FEEDBACK,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 14:00:00,1,1672578000000000,9558613439000000
+      - input: ref('dim_candidate')
+        format: csv
+        rows: |
+          _offset,id,primary_skill_id,staffing_status,english_level,job_function_id,valid_from_datetime,valid_to_datetime
+          100,c1,s1,Available,C1,jf1,2020-01-01 00:00:00,2099-12-31 00:00:00
+      - input: ref('dim_employee')
+        format: csv
+        rows: |
+          _offset,id,job_function_id,primary_skill_id,production_category,employment_status,org_category,org_category_type,work_start_date,work_end_date,is_active,valid_from_datetime,valid_to_datetime
+          200,e1,jf1,s1,Production,Full-time,Engineering,Dev,2020-01-01,,true,2020-01-01 00:00:00,2099-12-31 00:00:00
+    expect:
+      format: csv
+      rows: |
+        id,scheduled_datetime,started_datetime,feedback_provided_datetime,interview_duration
+        i1,2023-01-02 10:00:00,2023-01-02 12:00:00,2023-01-02 14:00:00,120
+
+  - name: test_within_interview_trap_duration
+    description: >
+      Verifies that the scheduled_to_started within_interview trap calculates duration
+      in hours correctly from mocked stg_interview rows.
+    model: interview_time_trap
+    given:
+      - input: ref('stg_interview')
+        format: csv
+        rows: |
+          id,candidate_id,type,status,created_at,updated_at,row_is_active,row_valid_from,row_valid_to
+          i1,c1,Technical,SCHEDULED,2023-01-01 09:00:00,2023-01-02 10:00:00,0,1672563600000000,1672570800000000
+          i1,c1,Technical,IN_PROGRESS,2023-01-01 09:00:00,2023-01-02 12:00:00,1,1672570800000000,9558613439000000
+    expect:
+      format: csv
+      rows: |
+        candidate_id,interview_time_trap_name,trap_duration
+        c1,scheduled_to_started,2.0
