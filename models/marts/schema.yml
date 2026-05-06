@@ -2,10 +2,10 @@ version: 2
 
 models:
   - name: dim_candidate
-    description: "SCD2 candidate dimension. Each row is one version of a candidate record."
+    description: "{{ doc('scd2_overview') }}"
     columns:
       - name: _offset
-        description: "Surrogate key — unique per SCD2 version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
@@ -23,10 +23,10 @@ models:
           - not_null
 
   - name: dim_employee
-    description: "SCD2 employee dimension. Each row is one version of an employee record."
+    description: "{{ doc('scd2_overview') }}"
     columns:
       - name: _offset
-        description: "Surrogate key — unique per SCD2 version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
@@ -76,7 +76,7 @@ models:
           - not_null
 
   - name: fct_interview
-    description: "One row per interview (latest state) with pivoted status timestamps and point-in-time dimension keys."
+    description: "{{ doc('fct_interview') }}"
     columns:
       - name: id
         description: "Unique interview identifier."
@@ -84,7 +84,7 @@ models:
           - unique
           - not_null
       - name: candidate_offset
-        description: "FK to dim_candidate._offset — candidate state at interview creation time."
+        description: "{{ doc('pit_join') }}"
         data_tests:
           # DQ Issue 2: some interviews reference candidates not in the candidates table
           - relationships:
@@ -92,14 +92,14 @@ models:
               field: _offset
               severity: warn
       - name: interviewer_offset
-        description: "FK to dim_employee._offset — interviewer state at interview creation time."
+        description: "{{ doc('pit_join') }}"
         data_tests:
           - relationships:
               to: ref('dim_employee')
               field: _offset
               severity: warn
       - name: interview_duration
-        description: "Minutes from IN_PROGRESS to PENDING_FEEDBACK (online interviews only)."
+        description: "{{ doc('interview_duration') }}"
         data_tests:
           # DQ Issue 3: a small number of interviews have negative durations due to out-of-order
           # status transitions in the source; surfaced as warn to monitor without blocking
@@ -116,7 +116,7 @@ models:
               row_condition: "feedback_delay is not null"
 
   - name: interview_time_trap
-    description: "Duration metrics between key interview lifecycle events, driven by dbt vars."
+    description: "{{ doc('interview_time_trap') }}"
     columns:
       - name: candidate_id
         data_tests:

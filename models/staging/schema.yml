@@ -2,12 +2,12 @@ version: 2
 
 models:
   - name: stg_candidate
-    description: "Full SCD2 history of each candidate with renamed columns and timestamp casts."
+    description: "{{ doc('scd2_overview') }}"
     config:
       materialized: view
     columns:
       - name: offset
-        description: "Incremental load offset from the source system. Unique per version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
@@ -40,19 +40,19 @@ models:
         data_tests:
           - not_null
       - name: row_is_active
-        description: "1 if this is the current version of the record, 0 otherwise."
+        description: "{{ doc('scd2_row_is_active') }}"
         data_tests:
           - not_null
           - accepted_values:
               values: [0, 1]
 
   - name: stg_employee
-    description: "Full SCD2 history of each employee with type casts and date conversions."
+    description: "{{ doc('scd2_overview') }}"
     config:
       materialized: table
     columns:
       - name: offset
-        description: "Incremental load offset from the source system. Unique per version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
@@ -97,22 +97,20 @@ models:
         data_tests:
           - not_null
       - name: row_is_active
-        description: "1 if this is the current version of the record, 0 otherwise."
+        description: "{{ doc('scd2_row_is_active') }}"
         data_tests:
           - not_null
           - accepted_values:
               values: [0, 1]
 
   - name: stg_interview
-    description: >
-      Full SCD2 history of interview records. Each row represents one status-change event.
-      Materialized incrementally so only new or updated records are processed on each run.
+    description: "{{ doc('scd2_overview') }}"
     config:
       materialized: incremental
       unique_key: offset
     columns:
       - name: offset
-        description: "Incremental load offset from the source system. Unique per version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
@@ -186,7 +184,7 @@ models:
       materialized: view
     columns:
       - name: offset
-        description: "Incremental load offset from the source system. Unique per version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
@@ -241,7 +239,7 @@ models:
       materialized: view
     columns:
       - name: offset
-        description: "Incremental load offset from the source system. Unique per version row."
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
           - not_null
