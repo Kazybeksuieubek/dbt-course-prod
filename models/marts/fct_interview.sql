@@ -4,21 +4,21 @@ with
     interview_history as (select * from {{ ref('stg_interview') }}),
 
     -- Latest state of each interview (for non-status attributes)
-    interviews_latest as (select * from interview_history where row_is_active = 1),
+    interviews_latest as (select * from {{ ref('latest_stg_interview') }}),
 
     -- Pivot status timestamps: when did each interview reach each status?
     status_times as (
         select
             id,
             min(created_at) as created_at,
-            max(case when status = 'REQUESTED' then updated_at end) as requested_at,
-            max(case when status = 'SCHEDULED' then updated_at end) as scheduled_at,
-            max(case when status = 'IN_PROGRESS' then updated_at end) as started_at,
-            max(
+            min(case when status = 'REQUESTED' then updated_at end) as requested_at,
+            min(case when status = 'SCHEDULED' then updated_at end) as scheduled_at,
+            min(case when status = 'IN_PROGRESS' then updated_at end) as started_at,
+            min(
                 case when status = 'PENDING_FEEDBACK' then updated_at end
             ) as feedback_provided_at,
-            max(case when status = 'COMPLETED' then updated_at end) as finished_at,
-            max(case when status = 'CANCELLED' then updated_at end) as cancelled_at
+            min(case when status = 'COMPLETED' then updated_at end) as finished_at,
+            min(case when status = 'CANCELLED' then updated_at end) as cancelled_at
         from interview_history
         group by id
     )
@@ -36,7 +36,6 @@ select
     i.type,
     i.media_status,
     i.invite_answer_status,
-    s.created_at::date as created_date,
     s.created_at as created_datetime,
     s.requested_at as requested_datetime,
     s.scheduled_at as scheduled_datetime,

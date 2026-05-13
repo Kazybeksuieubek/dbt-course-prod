@@ -1,6 +1,14 @@
 {{ config(materialized='table') }}
 
-select id, is_active, type, name, url, parent_id
+select
+    offset::bigint as _offset,
+    id,
+    is_active,
+    type,
+    name,
+    url,
+    parent_id,
+    valid_from_datetime,
+    valid_to_datetime
 
 from {{ ref('stg_skill') }}
-where row_is_active = 1

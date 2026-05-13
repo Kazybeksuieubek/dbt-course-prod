@@ -76,6 +76,12 @@ models:
         description: "Employment start date."
       - name: work_end_date
         description: "Employment end date; NULL if still active."
+        data_tests:
+          # DQ Issue 2: some records have work_end_date earlier than work_start_date
+          - not_before:
+              start_column: work_start_date
+              row_condition: "row_is_active = 1"
+              severity: warn
       - name: is_active
         description: "Whether the employee is currently active."
         data_tests:

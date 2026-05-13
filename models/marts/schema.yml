@@ -44,24 +44,32 @@ models:
           - not_null
 
   - name: dim_primary_skill
-    description: "Current state of the skills taxonomy (primary-eligible skills)."
+    description: "Full SCD2 history of the skills taxonomy."
     columns:
-      - name: id
-        description: "Unique skill identifier."
+      - name: _offset
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
+          - not_null
+      - name: id
+        description: "Skill identifier (not unique across SCD2 versions)."
+        data_tests:
           - not_null
       - name: name
         data_tests:
           - not_null
 
   - name: dim_job_function
-    description: "Current state of all job function definitions."
+    description: "Full SCD2 history of all job function definitions."
     columns:
-      - name: id
-        description: "Unique job function identifier."
+      - name: _offset
+        description: "{{ doc('scd2_offset') }}"
         data_tests:
           - unique
+          - not_null
+      - name: id
+        description: "Job function identifier (not unique across SCD2 versions)."
+        data_tests:
           - not_null
       - name: base_name
         data_tests:
@@ -145,6 +153,11 @@ unit_tests:
           id,candidate_id,interviewer_id,candidate_type,status,location,is_logged,is_media_available,run_type,type,media_status,invite_answer_status,created_at,updated_at,row_is_active,row_valid_from,row_valid_to
           i1,c1,e1,EXPERIENCED,SCHEDULED,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 10:00:00,0,1672563600000000,1672570800000000
           i1,c1,e1,EXPERIENCED,IN_PROGRESS,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 12:00:00,0,1672570800000000,1672578000000000
+          i1,c1,e1,EXPERIENCED,PENDING_FEEDBACK,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 14:00:00,1,1672578000000000,9558613439000000
+      - input: ref('latest_stg_interview')
+        format: csv
+        rows: |
+          id,candidate_id,interviewer_id,candidate_type,status,location,is_logged,is_media_available,run_type,type,media_status,invite_answer_status,created_at,updated_at,row_is_active,row_valid_from,row_valid_to
           i1,c1,e1,EXPERIENCED,PENDING_FEEDBACK,MS_TEAMS,true,false,ONLINE,Technical,NO_MEDIA,ACCEPTED,2023-01-01 09:00:00,2023-01-02 14:00:00,1,1672578000000000,9558613439000000
       - input: ref('dim_candidate')
         format: csv

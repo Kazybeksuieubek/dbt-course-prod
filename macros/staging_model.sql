@@ -33,6 +33,9 @@
         source as (
             select *
             from {{ source('raw', source_table) }}
+            {%- if is_incremental() %}
+                where _offset > (select max(offset) from {{ this }})
+            {%- endif %}
             -- DQ Fix: deduplicate CDC replay — keep the latest row per offset
             qualify
                 row_number() over (partition by _offset order by _updated_micros desc)
@@ -62,15 +65,13 @@
                 {{ custom_expr }} as {{ target_col }},
             {%- elif target_type == 'TIMESTAMP_NTZ' %}
                 to_timestamp_ntz({{ raw_col }}::number / 1000000) as {{ target_col }},
-            {%- elif target_type == 'BOOLEAN' %}
-                {{ raw_col }}::boolean as {{ target_col }},
-            {%- elif target_type == 'NUMBER' %}
-                {{ raw_col }}::number as {{ target_col }},
-            {%- else %} {{ raw_col }}::varchar as {{ target_col }},
+            {%- else %} {{ raw_col }}::{{ target_type }} as {{ target_col }},
             {%- endif %}
         {%- endfor %}
         row_valid_from,
         row_valid_to,
+        to_timestamp_ntz(row_valid_from::bigint / 1000000) as valid_from_datetime,
+        to_timestamp_ntz(row_valid_to::bigint / 1000000) as valid_to_datetime,
         (row_valid_to = 9558613439000000)::int as row_is_active
 
     from with_validity

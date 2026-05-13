@@ -1,7 +1,16 @@
 {{ config(materialized='table') }}
 
 select
-    id, base_name, category, is_active, level, track, seniority_level, seniority_index
+    offset::bigint as _offset,
+    id,
+    base_name,
+    category,
+    is_active,
+    level,
+    track,
+    seniority_level,
+    seniority_index,
+    valid_from_datetime,
+    valid_to_datetime
 
 from {{ ref('stg_job_function') }}
-where row_is_active = 1
