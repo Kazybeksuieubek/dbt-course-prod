@@ -1,0 +1,49 @@
+metrics:
+  - name: total_interviews
+    label: "Total Interviews"
+    description: "Total number of interviews across all statuses."
+    type: simple
+    type_params:
+      measure: interview_count
+
+  - name: avg_interview_duration_minutes
+    label: "Avg Interview Duration (min)"
+    description: "Average interview duration in minutes (from IN_PROGRESS to PENDING_FEEDBACK)."
+    type: simple
+    type_params:
+      measure: avg_interview_duration
+
+  - name: avg_feedback_delay_minutes
+    label: "Avg Feedback Delay (min)"
+    description: "Average minutes from PENDING_FEEDBACK to COMPLETED."
+    type: simple
+    type_params:
+      measure: avg_feedback_delay
+
+  - name: completed_interviews
+    label: "Completed Interviews"
+    description: "Total number of interviews that reached COMPLETED status."
+    type: simple
+    type_params:
+      measure: completed_interview_count
+
+  - name: completion_rate
+    label: "Completion Rate"
+    description: "Ratio of completed interviews to total interviews."
+    type: ratio
+    type_params:
+      numerator: completed_interviews
+      denominator: total_interviews
+
+saved_queries:
+  - name: interview_performance_by_type
+    label: "Interview Performance by Type"
+    description: "Interview volume, average duration, and completion rate grouped by interview type per month."
+    query_params:
+      metrics:
+        - total_interviews
+        - avg_interview_duration_minutes
+        - completion_rate
+      group_by:
+        - "Dimension('interviews__interview_type')"
+        - "TimeDimension('interviews__created_at', 'month')"
