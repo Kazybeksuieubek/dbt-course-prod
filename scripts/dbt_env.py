@@ -27,14 +27,29 @@ def main() -> int:
     else:
         print("Warning: no .env found at", env_file, file=sys.stderr)
 
-    if os.name == "nt":
-        dbt_exe = root / ".venv" / "Scripts" / "dbt.exe"
-        cmd = [str(dbt_exe)] if dbt_exe.is_file() else ["dbt"]
-    else:
-        dbt_bin = root / ".venv" / "bin" / "dbt"
-        cmd = [str(dbt_bin)] if dbt_bin.is_file() else ["dbt"]
+    tool = sys.argv[1] if sys.argv[1:] else "dbt"
+    args = sys.argv[2:]
 
-    return subprocess.call(cmd + sys.argv[1:], cwd=root)
+    if tool == "mf":
+        os.environ.setdefault("DBT_PROFILES_DIR", str(Path.home() / ".dbt"))
+        os.environ["PYTHONUTF8"] = "1"
+        os.environ["PYTHONIOENCODING"] = "utf-8"
+        if os.name == "nt":
+            exe = root / ".venv-mf" / "Scripts" / "mf.exe"
+            cmd = [str(exe)] if exe.is_file() else ["mf"]
+        else:
+            exe = root / ".venv-mf" / "bin" / "mf"
+            cmd = [str(exe)] if exe.is_file() else ["mf"]
+    else:
+        args = sys.argv[1:]
+        if os.name == "nt":
+            exe = root / ".venv" / "Scripts" / "dbt.exe"
+            cmd = [str(exe)] if exe.is_file() else ["dbt"]
+        else:
+            exe = root / ".venv" / "bin" / "dbt"
+            cmd = [str(exe)] if exe.is_file() else ["dbt"]
+
+    return subprocess.call(cmd + args, cwd=root)
 
 
 if __name__ == "__main__":

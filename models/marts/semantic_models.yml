@@ -1,0 +1,72 @@
+semantic_models:
+  - name: interviews
+    description: "Semantic model built on fct_interview — one row per interview."
+    model: ref('fct_interview')
+
+    entities:
+      - name: interview
+        type: primary
+        expr: id
+      - name: candidate
+        type: foreign
+        expr: candidate_offset
+      - name: interviewer
+        type: foreign
+        expr: interviewer_offset
+
+    dimensions:
+      - name: interview_type
+        type: categorical
+        expr: type
+      - name: candidate_type
+        type: categorical
+        expr: candidate_type
+      - name: status
+        type: categorical
+        expr: status
+      - name: location
+        type: categorical
+        expr: location
+      - name: run_type
+        type: categorical
+        expr: run_type
+      - name: is_logged
+        type: categorical
+        expr: is_logged
+      - name: created_at
+        type: time
+        expr: created_datetime
+        type_params:
+          time_granularity: day
+      - name: scheduled_at
+        type: time
+        expr: scheduled_datetime
+        type_params:
+          time_granularity: day
+
+    measures:
+      - name: interview_count
+        description: "Total number of interviews."
+        agg: count
+        expr: id
+        agg_time_dimension: created_at
+      - name: avg_interview_duration
+        description: "Average interview duration in minutes (IN_PROGRESS to PENDING_FEEDBACK)."
+        agg: average
+        expr: interview_duration
+        agg_time_dimension: created_at
+      - name: avg_feedback_delay
+        description: "Average minutes from PENDING_FEEDBACK to COMPLETED."
+        agg: average
+        expr: feedback_delay
+        agg_time_dimension: created_at
+      - name: completed_interview_count
+        description: "Number of interviews that reached COMPLETED status."
+        agg: count
+        expr: "CASE WHEN status = 'COMPLETED' THEN id ELSE NULL END"
+        agg_time_dimension: created_at
+      - name: cancelled_interview_count
+        description: "Number of cancelled interviews."
+        agg: count
+        expr: "CASE WHEN status = 'CANCELLED' THEN id ELSE NULL END"
+        agg_time_dimension: created_at

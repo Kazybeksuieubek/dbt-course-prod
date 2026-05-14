@@ -77,8 +77,11 @@ models:
 
   - name: dim_date
     description: "Date spine from 2020 to 2029."
+    time_spine:
+      standard_granularity_column: date
     columns:
       - name: date
+        granularity: day
         data_tests:
           - unique
           - not_null
